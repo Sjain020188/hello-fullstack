@@ -1,15 +1,31 @@
 const express = require("express");
+const morgan = require("morgan");
 const path = require("path");
+const http = require("http");
+const socketio = require("socket.io");
 
 const app = express();
+app.use(
+  morgan(
+    ':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] :response-time ms'
+  )
+);
 
-app.use(express.static(path.join(__dirname + "/dist")));
-const port = process.env.PORT || 4000;
-
-app.use("/api", (req, res) => {
-  res.send("Hello World");
+app.get("/", (req, res) => {
+  res.send("Welcome to chatssapp");
 });
 
-app.listen(port, function() {
-  console.log("App listening on" + port + "!");
+var server = http.createServer(app);
+var io = socketio(server);
+
+io.on("connection", function(socket) {
+  var online = Object.keys(io.engine.clients);
+  console.log("online users", online);
+  io.emit("server message", JSON.stringify(online));
+
+  socket.on("disconnect", function() {
+    var online = Object.keys(io.engine.clients);
+    io.emit("server message", JSON.stringify(online));
+  });
 });
+server.listen(3000, () => console.log("we up."));
